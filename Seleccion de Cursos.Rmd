@@ -1,0 +1,205 @@
+---
+title: "Sistema de Selección de Cursos"
+author: "Iván Enrique Cruz Acosta"
+date: "2025-10-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+**El sistema está hecho con html, css, JavaScript y Prolog**
+
+## Como descargar el archivo del Sistema
+Haga clic en el siguiente link: <https://github.com/azul150/Programaci-n-Avanzada>.
+
+El link los mandara a un repositorio de GitHub llamado Programación Avanzada. 
+
+* Una vez estando ahí darán clic en el boton de color verde que dice "**Code**" o "**Código**" segun el lenguaje que tengan en su página.
+
+* Despues darán clic en donde dice "**Download ZIP**" o "**Descargar ZIP**".
+
+* Cuando se termine de descargar el archivo ZIP, en su computadora se tendra que descomprimir el archivo.
+
+## Como funciona el sistema
+Para ver el funcionamiento del sistema haz doble clic al archivo html que se encuentra en la carpeta de "Base de Conocimiento".
+
+En la pagina apareceran dos listas desplegables (Una para seleccionar a los alumnos y la otra para seleccionar la materia ), un boton de consulta y un apartado para la respuesta de la consulta.
+
+Para hacer un funcionar el sistema es sencillo ya que solo se selecciona el nombre del alumno que se requiere saber si puede o no puede seleccionar una materia. Las respuestas que da el sistema pueden ser 3 en total:
+
+* [Nombre del alumno] ya aprobó [Nombre de la materia], no puede volver a cursarlo.
+
+* [Nombre del alumno]SÍ puede cursar [Nombre de la materia].
+
+* [Nombre del alumno]NO puede cursar [Nombre de la materia] porque le falta: [Nombre de la materia].
+
+## Código completo 
+```{html}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Cursos</title>
+    <script src="tau-prolog.js"></script>
+    <script src="tau-prolog/modules/lists.js"></script>
+    <style>
+    body { 
+        font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px;margin: 0; min-height: 100vh;
+        display: flex;justify-content: center;align-items: center;}.container { 
+        background: #fff;width: 90%;max-width: 400px;padding: 30px;border-radius: 8px;box-shadow: 0 2px 10px rgba(0,0,0,0.1);}
+    h1 {text-align: center;color: #2c3e50;margin-bottom: 20px;}.form-group {margin-bottom: 15px;}
+    label {display: block;font-weight: bold;margin-bottom: 5px;color: #34495e;}select, button {width: 100%; 
+        padding: 12px;border-radius: 6px;border: 1px solid #ddd;font-size: 16px;}select {background: #fff;
+    }button {background: #3498db;color: #fff;border: none;cursor: pointer;margin-top: 10px;font-weight: bold;transition: background 0.3s ease;}
+    button:hover {background: #2980b9;}.result {margin-top: 20px;padding: 15px;border-radius: 6px;background: #f8f9fa;border-left: 4px solid #3498db;}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>Sistema de Selección de Cursos</h1>
+     <!--Seleccionar alumno-->
+    <div class="form-group">
+        <label for="alumno">Selecciona un alumno:</label>
+        <select id="alumno">
+            <option value="maria">Maria</option>
+            <option value="carlos">Carlos</option>
+            <option value="laura">Laura</option>
+            <option value="juan">Juan</option>
+        </select>
+    </div>
+    <!--Seleccionar materia-->
+    <div class="form-group">
+        <label for="curso">Selecciona un curso:</label>
+        <select id="curso">
+            <option value="calculo_diferencial">Cálculo Diferencial</option>
+            <option value="calculo_integral">Cálculo Integral</option>
+            <option value="programacion1">Programación 1</option>
+            <option value="programacion2">Programación 2</option>
+            <option value="algoritmos">Algoritmos</option>
+            <option value="fisica1">Física 1</option>
+            <option value="ingles1">Inglés 1</option>
+            <option value="ingles2">Inglés 2</option>
+        </select>
+    </div>
+     <!--Consulta-->
+    <button onclick="consulta()">¿Puede cursar?</button>
+     <!--Respuesta de la consulta-->
+    <div id="resultado" class="result"></div>
+</div>
+ <!--Base de Conocimiento-Prolog-->
+<script>
+    const prologCode = `
+        % --- Materias ---
+        materia(calculo_diferencial).
+        materia(calculo_integral).
+        materia(programacion1).
+        materia(programacion2).
+        materia(algoritmos).
+        materia(fisica1).
+        materia(ingles1).
+        materia(ingles2).
+
+        % --- Cursos aprobados ---
+        aprobada(maria, calculo_diferencial).
+        aprobada(maria, programacion1).
+        aprobada(juan, calculo_diferencial).
+        aprobada(laura, programacion1).
+        aprobada(carlos, calculo_diferencial).
+        aprobada(carlos, ingles1).
+        aprobada(carlos, fisica1).
+
+        % --- Requisitos ---
+        requisito(calculo_integral, calculo_diferencial).
+        requisito(programacion2, programacion1).
+        requisito(algoritmos, programacion1).
+        requisito(ingles2, ingles1).
+
+        % --- Estados de los cursos ---
+        %Ya aprobó el curso
+        estado_curso(Alumno, Curso, ya_aprobado) :-
+            aprobada(Alumno, Curso).
+
+        % cumple requisitos y no lo ha aprobado antes
+        estado_curso(Alumno, Curso, puede_cursar) :-
+            materia(Curso),
+            \\+ aprobada(Alumno, Curso),
+            forall(requisito(Curso, Pre), aprobada(Alumno, Pre)).
+
+        % le faltan requisitos
+        estado_curso(Alumno, Curso, no_puede) :-
+            materia(Curso),
+            \\+ aprobada(Alumno, Curso),
+            (requisito(Curso, Pre), \\+ aprobada(Alumno, Pre)).
+
+        % --- Requisitos faltantes ---
+        faltan(Alumno, Curso, X) :-
+            findall(Pre, (requisito(Curso, Pre), \\+ aprobada(Alumno, Pre)), X).
+    `;
+
+    const session = pl.create();
+    session.consult(prologCode);
+
+    // Consulta estado del curso: Aprobado,No aprobado y puede llevar la materia,Si puede llevar la materia
+    function consulta(){
+        const alumno = document.getElementById("alumno").value;
+        const curso = document.getElementById("curso").value;
+        const query = `estado_curso(${alumno},${curso},Estado).`;
+        
+        session.query(query);
+        session.answer(answer => {
+            if (pl.type.is_substitution(answer)){
+                const estado = answer.lookup("Estado").id;
+                if (estado === "ya_aprobado") {
+                    document.getElementById("resultado").innerHTML = 
+                        `<b>${alumno}</b> ya aprobó <b>${curso.replace("_"," ")}</b>, no puede volver a cursarlo.`;
+                } else if (estado === "puede_cursar") {
+                    document.getElementById("resultado").innerHTML = 
+                        `<b>${alumno}</b> SÍ puede cursar <b>${curso.replace("_"," ")}</b>.`;
+                } else if (estado === "no_puede") {
+                    consulta_faltantes(true);
+                }
+            } else {
+                document.getElementById("resultado").innerHTML = "No se encontró información.";
+            }
+        });
+    }
+
+    // Consulta: Requisitos para la materia
+    function consulta_faltantes(fromConsulta=false){
+        const alumno = document.getElementById("alumno").value;
+        const curso = document.getElementById("curso").value;
+        const query = `faltan(${alumno},${curso},X).`;
+
+        session.query(query);
+        session.answer(answer => {
+            if (pl.type.is_substitution(answer)){
+                const faltantes = answer.lookup("X");
+                let lista = [];
+
+                if (faltantes.indicator === "./2") {
+                    let node = faltantes;
+                    while (node.indicator === "./2") {
+                        lista.push(node.args[0].id.replace("_"," "));
+                        node = node.args[1];
+                    }
+                }
+
+                if (lista.length > 0){
+                    document.getElementById("resultado").innerHTML = 
+                        `<b>${alumno}</b> NO puede cursar <b>${curso.replace("_"," ")}</b> porque le falta: ${lista.join(", ")}`;
+                } else if(!fromConsulta) {
+                    document.getElementById("resultado").innerHTML = 
+                        `<b>${alumno}</b> no necesita requisitos adicionales para <b>${curso.replace("_"," ")}</b>`;
+                }
+            } else if(!fromConsulta) {
+                document.getElementById("resultado").innerHTML = 
+                    `<b>${alumno}</b> no necesita requisitos adicionales para <b>${curso.replace("_"," ")}</b>`;
+            }
+        });
+    }
+</script>
+</body>
+</html>
+```
